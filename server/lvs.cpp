@@ -28,6 +28,13 @@
 #include <event2/event.h>
 
 struct event *evfifo;
+struct event *pipesCheckEvent;
+
+void
+pipesCheck(int fd, short event, void *arg)
+{
+    printf("pipesCheck\n");
+}
 
 static void
 fifo_read(evutil_socket_t fd, short event, void* arg)
@@ -117,9 +124,14 @@ main(int argc, char **argv)
 
 	evfifo = event_new(base, socket, EV_READ|EV_PERSIST, fifo_read,
                            NULL);
-
-	/* Add it to the active events, without a timeout */
 	event_add(evfifo, NULL);
+
+    // timer
+    struct timeval time;
+    time.tv_sec = 1;
+    time.tv_usec = 0;
+    pipesCheckEvent = event_new(base, 0, EV_PERSIST, pipesCheck, NULL);
+    evtimer_add(pipesCheckEvent, &time);
 
 	event_base_dispatch(base);
 
