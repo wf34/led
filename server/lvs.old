@@ -81,7 +81,6 @@ main(int argc, char **argv)
 	struct event_base* base;
 	struct event *signal_int;
 	struct stat st;
-	const char *fifo = "/tmp/led/led_pipe";
 	const char *fifoDir = "/tmp/led";
     int socket;
 

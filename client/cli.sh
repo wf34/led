@@ -13,8 +13,17 @@ echo "${fifoReq}"
 echo "${fifoResp}"
 
 echo 'kuku' > "${fifoReq}"
+response=`timeout 1s cat "${fifoResp}"
+`
 
-rm("${fifoReq}")
-rm("${fifoResp}")
+#read "${fifoResp}"
+
+#read -t 1 line < "$fifoResp"
+#read -t 2 <>"$fifoResp"
+
+echo $response
+
+#rm("${fifoReq}")
+#rm("${fifoResp}")
 
 
