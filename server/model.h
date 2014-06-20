@@ -16,11 +16,36 @@
 
 #include "session.h"
 
+enum LedColor {
+    UNDEF = 1,
+    RED,
+    GREEN,
+    BLUE
+};
+
+struct CameraState {
+    CameraState():
+        state_(false),
+        frequency_(0),
+        color_(RED) {
+    }
+
+    bool state_;
+    int frequency_;
+    LedColor color_;
+};
 
 class Model {
     public:
         void run();
-        static void readFromPipe(evutil_socket_t fd, short event, void* ctx);
+
+        bool getState(bool& state) const;
+        bool getFreq(int& freq) const;
+        bool getColor(std::string& color) const;
+
+        bool setState(bool state);
+        bool setFreq(int freq);
+        bool setColor(const std::string& color);
 
     private:
         static void createNewSession(const std::string& id, Model* ctx);
@@ -31,7 +56,7 @@ class Model {
         struct event_base* base_;
 	    struct event * sigInt_;
         struct event * pipesCheckEvent;
-
+        CameraState cam_;
 };
 
 #endif /* MODEL_H__ */

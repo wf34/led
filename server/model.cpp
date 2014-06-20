@@ -1,48 +1,67 @@
 
 #include "model.h"
 
-void
-Model::createNewSession(const std::string& id, Model* ctx) {
-    printf("Adding session %s\n", id.c_str());
-    ctx->sessions_[id] = Session(id);
-    ctx->sessions_[id].open(ctx->base_, &Model::readFromPipe);
+bool
+Model::getState(bool& state) const {
+    state = cam_.state_;
+    return true;
+}
 
-    //for (std::map<std::string, Session>::iterator it = ctx->sessions_.begin();
-    //    it!= ctx->sessions_.end();
-    //    it++) {
-    //    printf("we have: %s\n", it->first.c_str());
-    //}
+
+bool
+Model::getFreq(int& freq) const {
+    freq = cam_.frequency_;
+    return true;
+}
+
+
+bool
+Model::getColor(std::string& color) const {
+    if (cam_.color_ == UNDEF)
+        return false;
+    if (cam_.color_ == RED)
+        color = "red";
+    else if (cam_.color_ == BLUE)
+        color = "blue";
+    else if (cam_.color_ == GREEN)
+        color = "green";
+    return true;
+}
+
+
+bool
+Model::setState(bool state) {
+    cam_.state_ = state;
+    return true;
+}
+
+
+bool
+Model::setFreq(int freq) {
+    cam_.frequency_ = freq;
+    return true;
+}
+
+
+bool
+Model::setColor(const std::string& color) {
+    if (color == "red")
+        cam_.color_ = RED;
+    else if (color == "green")
+        cam_.color_ = GREEN;
+    else if (color == "blue")
+        cam_.color_ = BLUE;
+    else
+        return false;
+
+    return true;
 }
 
 void
-Model::readFromPipe(evutil_socket_t fd, short event, void* ctx) {
-    Session* curr = static_cast<Session*>(ctx);
-    printf("Got read!\n");
-	char buf[255];
-	int len;
-	//struct event *ev = evfifo;
-
-	//fprintf(stderr, "readFromPipe called with fd: %d, event: %d, arg: %p\n", (int)fd, event, ev);
-	len = read(fd, buf, sizeof(buf) - 1);
-
-	if (len <= 0) {
-		if (len == -1)
-			perror("read");
-		else if (len == 0)
-			fprintf(stderr, "Connection closed %d\n", errno);
-		//event_del(ev);
-		//event_base_loopbreak(event_get_base(ev));
-		return;
-	}
-
-	buf[len] = '\0';
-	fprintf(stdout, "Read: %s\n", buf);
-    
-    char outBuff[64]; 
-    memset(outBuff, 0, sizeof(char)*64);
-    sprintf(outBuff, "%s", "responseresponse");
-    int respFd = ::open(curr->getFifo(false).c_str(), O_WRONLY);
-    ::write(respFd, outBuff, strlen(outBuff));
+Model::createNewSession(const std::string& id, Model* ctx) {
+    printf("Adding session %s\n", id.c_str());
+    ctx->sessions_[id] = Session(id, ctx);
+    ctx->sessions_[id].open(ctx->base_);
 }
 
 
@@ -66,7 +85,6 @@ Model::pipesCheck(int fd, short event, void *arg) {
              if (ctx->sessions_.find(id) != ctx->sessions_.end())
                  continue;
             createNewSession(id, ctx);
-
          }
      }
      closedir(d);
@@ -78,8 +96,8 @@ Model::sigIntCb(evutil_socket_t fd, short event, void *arg) {
     printf("caught SIGINT\n");
 	struct event_base *base = static_cast<event_base*>(arg);
 	event_base_loopbreak(base);
-
 }
+
 
 void
 Model::run() {

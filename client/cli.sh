@@ -35,7 +35,12 @@ function sendAndRecv() {
     request=$1
     echo "$request" > "${fifoReq}"
     response=$(timeout 1s cat "${fifoResp}")
-    echo $response
+    if [[ "$response" == OK* ]]; then
+        echo "Request successed"
+        echo "${response:3:${#response}-3}"
+    else
+        echo "Request failed"
+    fi
 }
 
 # Getters #################
@@ -56,7 +61,7 @@ function getColor() {
 function setState() {
     echo "Switch on or switch off? [1] [0]"
     read keyState
-    request="${cmdSetState} "
+    request="${cmdSetState}"
     if [ "$keyState" == "1" ]; then
         request="${request} on"
     elif [ "$keyState" == "0" ]; then
@@ -82,7 +87,7 @@ function setFreq() {
 }
 
 function setColor() {
-    echo "Switch on or switch off? [1] [0]"
+    echo "What color? [red] [green] [blue]"
     read keyColor
 
     if [[ "$keyColor" != "red" && \
