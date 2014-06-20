@@ -1,9 +1,13 @@
 #!/bin/bash
-set -x
+#set -x
 
+# Protocol commands:
 cmdGetState="get-led-state"
 cmdGetColor="get-led-color"
 cmdGetFreq="get-led-rate"
+cmdSetState="set-led-state"
+cmdSetColor="set-led-color"
+cmdSetFreq="set-led-rate"
 
 function promptErr() {
     echo "Wrong input"
@@ -34,45 +38,95 @@ function sendAndRecv() {
     echo $response
 }
 
+# Getters #################
+
 function getState() {
     sendAndRecv "$cmdGetState"
 }
 
 function getFreq() {
-    sendAndRecv "$cmdFreqState"
+    sendAndRecv "$cmdGetFreq"
 }
 
 function getColor() {
-    sendAndRecv "$cmdColorState"
+    sendAndRecv "$cmdGetColor"
 }
 
-
-fifoDir="/tmp/led"
-id=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
-fifoReq="${fifoDir}/led_pipe_${id}_req"
-fifoResp="${fifoDir}/led_pipe_${id}_resp"
-
-mkdir -p "${fifoDir}"
-mkfifo "${fifoReq}"
-mkfifo "${fifoResp}"
-
-echo "${fifoReq}"
-echo "${fifoResp}"
-
-
-while true
-do
-    echo "Get or Set? [G] [S]"
-    read keyGS
-    if [ "$keyGS" == "G" ]; then
-        switchVars getState getFreq getColor
-    elif [ "$keyGS" == "S" ]; then
-        switchVars setState setFreq setColor
+# Setters #########
+function setState() {
+    echo "Switch on or switch off? [1] [0]"
+    read keyState
+    request="${cmdSetState} "
+    if [ "$keyState" == "1" ]; then
+        request="${request} on"
+    elif [ "$keyState" == "0" ]; then
+        request="${request} off"
     else
         promptErr
     fi
-done
+    sendAndRecv "${request}"
+}
+
+function setFreq() {
+    echo "Input frequency in hertz [0..5]"
+    read keyFreq
+    if ! [[ $keyFreq =~ ^-?[0-9]+$ ]];then
+        promptErr
+    fi
+    if [[ $keyFreq -lt 0 || $keyFreq -gt 5 ]]; then 
+        promptErr
+    fi
+    
+    request="${cmdSetFreq} ${keyFreq}"
+    sendAndRecv "${request}"
+}
+
+function setColor() {
+    echo "Switch on or switch off? [1] [0]"
+    read keyColor
+
+    if [[ "$keyColor" != "red" && \
+          "$keyColor" != "green" && \
+          "$keyColor" != "blue" ]]; then
+        promptErr
+    fi
+    request="${cmdSetColor} ${keyColor}"
+    sendAndRecv "${request}"
+}
+
+function handler() {
+    rm "${fifoReq}"
+    rm "${fifoResp}"
+    exit
+}
 
 
+function main() {
+    trap handler SIGINT
+    fifoDir="/tmp/led"
+    id=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+    echo "Session ${id}"
+    readonly fifoReq="${fifoDir}/led_pipe_${id}_req"
+    readonly fifoResp="${fifoDir}/led_pipe_${id}_resp"
+    
+    mkdir -p "${fifoDir}"
+    mkfifo "${fifoReq}"
+    mkfifo "${fifoResp}"
+    
+    while true
+    do
+        echo "Get or Set? [G] [S]"
+        read keyGS
+        if [ "$keyGS" == "G" ]; then
+            switchVars getState getFreq getColor
+        elif [ "$keyGS" == "S" ]; then
+            switchVars setState setFreq setColor
+        else
+            promptErr
+        fi
+    done
+}
+
+main
 
 
