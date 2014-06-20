@@ -13,6 +13,7 @@
 
 #include <event2/event-config.h>
 #include <event2/event.h>
+#include <pthread.h>
 
 #include "session.h"
 
@@ -35,8 +36,23 @@ struct CameraState {
     LedColor color_;
 };
 
+class MutexWrapper {
+    public:
+        MutexWrapper(pthread_mutex_t * m):
+            m_(m) {
+                pthread_mutex_lock(m_);
+        }
+        ~MutexWrapper() {
+            pthread_mutex_unlock(m_);
+        }
+    private:
+        pthread_mutex_t * m_;
+};
+
 class Model {
     public:
+        Model();
+        ~Model();
         void run();
 
         bool getState(bool& state) const;
@@ -57,6 +73,7 @@ class Model {
 	    struct event * sigInt_;
         struct event * pipesCheckEvent;
         CameraState cam_;
+        pthread_mutex_t * cameraMutex_;
 };
 
 #endif /* MODEL_H__ */

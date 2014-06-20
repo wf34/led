@@ -1,8 +1,20 @@
 
 #include "model.h"
 
+Model::Model() {
+    cameraMutex_ = new pthread_mutex_t();
+    pthread_mutex_init(cameraMutex_, NULL);
+}
+
+
+Model::~Model() {
+    pthread_mutex_destroy(cameraMutex_);
+}
+
+
 bool
 Model::getState(bool& state) const {
+    MutexWrapper w(cameraMutex_);
     state = cam_.state_;
     return true;
 }
@@ -10,6 +22,7 @@ Model::getState(bool& state) const {
 
 bool
 Model::getFreq(int& freq) const {
+    MutexWrapper w(cameraMutex_);
     freq = cam_.frequency_;
     return true;
 }
@@ -17,6 +30,7 @@ Model::getFreq(int& freq) const {
 
 bool
 Model::getColor(std::string& color) const {
+    MutexWrapper w(cameraMutex_);
     if (cam_.color_ == UNDEF)
         return false;
     if (cam_.color_ == RED)
@@ -31,6 +45,7 @@ Model::getColor(std::string& color) const {
 
 bool
 Model::setState(bool state) {
+    MutexWrapper w(cameraMutex_);
     cam_.state_ = state;
     return true;
 }
@@ -38,6 +53,7 @@ Model::setState(bool state) {
 
 bool
 Model::setFreq(int freq) {
+    MutexWrapper w(cameraMutex_);
     cam_.frequency_ = freq;
     return true;
 }
@@ -45,6 +61,7 @@ Model::setFreq(int freq) {
 
 bool
 Model::setColor(const std::string& color) {
+    MutexWrapper w(cameraMutex_);
     if (color == "red")
         cam_.color_ = RED;
     else if (color == "green")
