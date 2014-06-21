@@ -31,15 +31,18 @@ const std::string Session::cmdSetFreq = "set-led-rate";
 
 Session::Session():
     reqFd_(-1),
-    respFd_(-1),
     ev_(NULL) {
+}
+
+Session::~Session() {
+    if (ev_)
+         event_free(ev_);
 }
 
 
 Session::Session(const std::string& id, Model* model):
     id_(id),
     reqFd_(-1),
-    respFd_(-1),
     ev_(NULL),
     model_(model) {
 }
@@ -48,7 +51,6 @@ Session::Session(const std::string& id, Model* model):
 Session::Session(const Session& other):
     id_(other.id_),
     reqFd_(other.reqFd_),
-    respFd_(other.respFd_),
     ev_(other.ev_),
     model_(other.model_) {
 }
@@ -67,11 +69,8 @@ bool
 Session::open(struct event_base* base) {
     reqFd_ = ::open(getFifo().c_str(), O_RDWR | O_NONBLOCK);
 
-	if (reqFd_ == -1) {
-        printf("fd invalid %d %d errno %d\n",
-               reqFd_, respFd_, errno);
+	if (reqFd_ == -1)
         return false;
-    }
 
     ev_ = event_new(base, reqFd_,
                     EV_READ|EV_PERSIST,
@@ -137,17 +136,20 @@ Session::readFromPipe(evutil_socket_t fd,
 	if (len <= 0) {
 		if (len == -1)
 			perror("read");
-		else if (len == 0)
-			fprintf(stderr, "Connection closed %d\n", errno);
 		return;
 	}
 
-	printf("Read: %s", request);
     std::string response;
     curr->process(request, response); 
 
     int respFd = ::open(curr->getFifo(false).c_str(),
                         O_WRONLY);
     ::write(respFd, response.c_str(), response.size());
+    ::close(respFd);
+}
+
+void
+Session::close() {
+    event_del(ev_);
 }
 

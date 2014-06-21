@@ -34,7 +34,7 @@ function switchVars() {
 function sendAndRecv() {
     request=$1
     echo "$request" > "${fifoReq}"
-    response=$(timeout 1s cat "${fifoResp}")
+    response=$(cat "${fifoResp}")
     if [[ "$response" == OK* ]]; then
         echo "Request successed"
         echo "${response:3:${#response}-3}"

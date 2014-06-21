@@ -18,7 +18,7 @@
 #include "session.h"
 
 enum LedColor {
-    UNDEF = 1,
+    UNDEF = 0,
     RED,
     GREEN,
     BLUE
@@ -58,20 +58,20 @@ class Model {
         bool getState(bool& state) const;
         bool getFreq(int& freq) const;
         bool getColor(std::string& color) const;
+        LedColor getColor() const;
 
         bool setState(bool state);
         bool setFreq(int freq);
         bool setColor(const std::string& color);
+        void setColor(LedColor color);
 
     private:
         static void createNewSession(const std::string& id, Model* ctx);
         static void pipesCheck(int fd, short event, void *arg);
-        static void sigIntCb(evutil_socket_t fd, short event, void *arg);
-
+        
         std::map<std::string,Session> sessions_;
         struct event_base* base_;
-	    struct event * sigInt_;
-        struct event * pipesCheckEvent;
+        struct event * pipesCheckEvent_;
         CameraState cam_;
         pthread_mutex_t * cameraMutex_;
 };

@@ -4,11 +4,27 @@
 Model::Model() {
     cameraMutex_ = new pthread_mutex_t();
     pthread_mutex_init(cameraMutex_, NULL);
+    cam_.color_ = RED;
+    cam_.state_ = true;
+    cam_.frequency_ = 5;
 }
 
 
 Model::~Model() {
+    setColor(UNDEF);
     pthread_mutex_destroy(cameraMutex_);
+
+    for(std::map<std::string,Session>::iterator it = sessions_.begin();
+        it != sessions_.end(); ++it)
+        it->second.close();
+    
+    event_base_loopbreak(base_);
+    if(pipesCheckEvent_) {
+        event_del(pipesCheckEvent_);
+        event_free(pipesCheckEvent_);
+    }
+    if(base_)
+        event_base_free(base_);
 }
 
 
@@ -42,6 +58,11 @@ Model::getColor(std::string& color) const {
     return true;
 }
 
+LedColor Model::getColor() const {
+    MutexWrapper w(cameraMutex_);
+   return cam_.color_; 
+};
+
 
 bool
 Model::setState(bool state) {
@@ -74,9 +95,15 @@ Model::setColor(const std::string& color) {
     return true;
 }
 
+
+void 
+Model::setColor(LedColor color) {
+    MutexWrapper w(cameraMutex_);
+    cam_.color_ = color;
+}
+
 void
 Model::createNewSession(const std::string& id, Model* ctx) {
-    printf("Adding session %s\n", id.c_str());
     ctx->sessions_[id] = Session(id, ctx);
     ctx->sessions_[id].open(ctx->base_);
 }
@@ -109,14 +136,6 @@ Model::pipesCheck(int fd, short event, void *arg) {
 
 
 void
-Model::sigIntCb(evutil_socket_t fd, short event, void *arg) {
-    printf("caught SIGINT\n");
-	struct event_base *base = static_cast<event_base*>(arg);
-	event_base_loopbreak(base);
-}
-
-
-void
 Model::run() {
     
     int status = mkdir(FIFO_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -126,18 +145,14 @@ Model::run() {
     }
 	
 	base_ = event_base_new();
-
-	// catch SIGINT so that event
-	sigInt_ = evsignal_new(base_, SIGINT, Model::sigIntCb, base_);
-	event_add(sigInt_, NULL);
-
+	
     // timer for clients detection
     struct timeval time;
     time.tv_sec = 1;
     time.tv_usec = 0;
-    pipesCheckEvent = event_new(base_, 0, EV_PERSIST,
+    pipesCheckEvent_ = event_new(base_, 0, EV_PERSIST,
                                 Model::pipesCheck, this);
-    evtimer_add(pipesCheckEvent, &time);
+    evtimer_add(pipesCheckEvent_, &time);
 
 	event_base_dispatch(base_);
 }

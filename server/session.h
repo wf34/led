@@ -22,8 +22,10 @@ class Session {
         Session(const std::string& id, Model* m);
         Session();
         Session(const Session& other);
+        ~Session();
 
         bool open(struct event_base* base);
+        void close();
 
     private:
         void process(const std::string& request,
@@ -36,7 +38,6 @@ class Session {
         Model* model_;
         std::string id_;
         int reqFd_;
-        int respFd_;
         struct event* ev_;
 
         static const std::string cmdGetState;

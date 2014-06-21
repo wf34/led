@@ -5,12 +5,14 @@
 
 #include <unistd.h>
 #include <pthread.h>
+#include <ncurses.h>
 
 #include "model.h"
 
 class View {
     public:
         View(Model* m);
+        ~View();
         void run();
      
     private:
