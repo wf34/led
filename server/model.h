@@ -66,7 +66,7 @@ class Model {
         void setColor(LedColor color);
 
     private:
-        static void createNewSession(const std::string& id, Model* ctx);
+        bool createNewSession(const std::string& id);
         static void pipesCheck(int fd, short event, void *arg);
         
         std::map<std::string,Session> sessions_;

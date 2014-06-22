@@ -2,12 +2,14 @@
 #include "view.h"
 
 View::View(Model* m):
-    model_(m) {
+    model_(m),
+    thread_(-1) {
 }
 
 
 View::~View() {
-    pthread_join(thread_, NULL);
+    if (-1 != thread_)
+        pthread_join(thread_, NULL);
 }
 
 
@@ -56,6 +58,7 @@ View::visualize(void* ctx) {
         model->getFreq(rate);
         if(col == UNDEF)
             break;
+
         currentColor = col;
         
         period = (rate != 0 ? 1000000/rate : 100000);
@@ -122,9 +125,10 @@ View::visualize(void* ctx) {
         wrefresh(win);
         wrefresh(triWin);
         clear();
+        delwin(win);
+        delwin(triWin);
     }
-
     endwin();
-    return NULL;
+    pthread_exit(NULL); 
 }
 

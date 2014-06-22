@@ -102,16 +102,27 @@ Model::setColor(LedColor color) {
     cam_.color_ = color;
 }
 
-void
-Model::createNewSession(const std::string& id, Model* ctx) {
-    ctx->sessions_[id] = Session(id, ctx);
-    ctx->sessions_[id].open(ctx->base_);
+bool
+Model::createNewSession(const std::string& id) {
+    sessions_[id] = Session(id, this);
+    return sessions_[id].open(base_);
 }
 
 
+// locates newly opened sessions
+// and detects sessions which were closed 
+// in order to delete them from sessions_
 void
 Model::pipesCheck(int fd, short event, void *arg) {
     Model* ctx = static_cast<Model*>(arg);
+
+    std::map<std::string, bool> invalidSessions;
+    for (std::map<std::string, Session>::const_iterator it =
+         ctx->sessions_.begin();
+         it != ctx->sessions_.end(); ++it) {
+        invalidSessions[it->first] = true;
+    }
+
     DIR * d = opendir(FIFO_DIR);
     if (NULL == d) {
         printf("error\n");
@@ -126,12 +137,26 @@ Model::pipesCheck(int fd, short event, void *arg) {
              currFile.substr(0, 9) == "led_pipe_" &&
              currFile.substr(currFile.length()-4, currFile.length()) == "_req") {
              std::string id = currFile.substr(9,16);
-             if (ctx->sessions_.find(id) != ctx->sessions_.end())
+             if (ctx->sessions_.find(id) != ctx->sessions_.end()) {
+                 invalidSessions[id] = false;
                  continue;
-            createNewSession(id, ctx);
+             }
+             if(ctx->createNewSession(id))
+                 invalidSessions[id] = false;
          }
-     }
-     closedir(d);
+    }
+    closedir(d);
+    for (std::map<std::string, bool>::const_iterator it =
+         invalidSessions.begin();
+         it != invalidSessions.end(); ++it) {
+        if(it->second) {
+            ctx->sessions_[it->first].close();
+            int a = ctx->sessions_.erase(it->first);
+            printf("we intend to delete %s %d\n",
+                    it->first.c_str(), a);
+
+        }
+    }
 }
 
 

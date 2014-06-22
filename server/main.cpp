@@ -9,11 +9,10 @@ View *v = NULL;
 
 void my_handler (int param)
 {
-      printf("csignal sigint\n");
-      if(m)
-          delete m;
-      if(v)
-          delete v;
+    if(m)
+        delete m;
+    if(v)
+        delete v;
 }
 
 int main() {
